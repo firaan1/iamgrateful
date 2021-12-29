@@ -1,0 +1,80 @@
+#:kivy 2.0.0
+<MemoryTemplate>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    MDBoxLayout:
+        orientation: 'vertical'
+        MDLabel:
+            text: '[u][size=30][b]Title1[/b][/size][/u]'
+            markup: True
+            halign: 'center'
+            font_name: 'Courgette'
+        MDLabel:
+            text: f'[u][size=22][b]{root.date_text}[/b][/size][/u]'
+            markup: True
+            halign: 'center'
+            font_name: 'Courgette'
+
+<MemoryScreen>:
+    name: 'memory'
+    # MemoryLayout:
+    MDSwiper:
+        id: mdswiper_id
+        items_spacing: '10dp'
+        canvas.before:
+            Color:
+                rgba: 0, 0, 0, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+<LoginScreen>:
+    name: 'login'
+
+    MDCard:
+        id: login_base_id
+        size: 300, 400
+        size_hint: None, None
+        pos_hint: {'center_x': .5, 'center_y': .5}
+        elevation: 10
+        padding: 25
+        spacing: 25
+        orientation: 'vertical'
+
+        MDLabel:
+            text: 'I am Grateful'
+            font_name: 'Courgette'
+            halign: 'center'
+            font_size: '30sp'
+
+        MDLabel:
+            text: 'Please enter your pass code'
+            font_name: 'Courgette'
+            halign: 'center'
+
+        MDTextField:
+            id: passcode
+            max_text_length: 4
+            width: 100
+            font_size: 50
+            size_hint_x: None
+            pos_hint: {'center_x': .5}
+            input_filter: 'int'
+            password: True
+            focus: True
+            on_text: root.passcode_validation(self)
+
+        MDRectangleFlatButton:
+            text: 'Submit'
+            pos_hint: {'center_x': .5}
+            disabled: root.register_btn_disabled
+            opacity: root.register_btn_opacity
+            on_release: root.register_user()
+
+        Widget:
+            size_hint_y: None
+            height: 30
