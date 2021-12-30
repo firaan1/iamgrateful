@@ -1,5 +1,10 @@
 #:kivy 2.0.0
+<ThingBoxTemplate>:
+    MDLabel:
+        text: f'example{root.iter_id}'
+
 <MemoryTemplate>:
+    id: f'memory_id{self.iter_id}'
     canvas.before:
         Color:
             rgba: 1, 1, 1, 1
@@ -9,7 +14,7 @@
     MDBoxLayout:
         orientation: 'vertical'
         MDLabel:
-            text: '[u][size=30][b]Title1[/b][/size][/u]'
+            text: '[u][size=30][b]How is it going?[/b][/size][/u]'
             markup: True
             halign: 'center'
             font_name: 'Courgette'
@@ -18,9 +23,15 @@
             markup: True
             halign: 'center'
             font_name: 'Courgette'
+        MDBoxLayout:
+            id: thingsbox_id
+            orientation: 'vertical'
+            
+
 
 <MemoryScreen>:
     name: 'memory'
+    on_pre_enter: self.ids.mdswiper_id.set_current(self.day_count - 1)
     # MemoryLayout:
     MDSwiper:
         id: mdswiper_id

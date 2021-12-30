@@ -30,29 +30,33 @@ class ScreenManagement(ScreenManager):
 sm = ScreenManagement(transition = SlideTransition())
 
 # screen classes
-class MemoryTemplate(MDSwiperItem):
-    date_text = StringProperty('xxxx')
-    def __init__(self, date_text, *args, **kwargs):
-        self.date_text = date_text
+class ThingBoxTemplate(MDBoxLayout):
+    iter_id = NumericProperty(-1)
+    def __init__(self, iter_id, *args, **kwargs):
+        self.iter_id = iter_id
         super().__init__(*args, **kwargs)
 
+class MemoryTemplate(MDSwiperItem):
+    date_text = StringProperty('')
+    iter_id = NumericProperty(-1)
+    def __init__(self, date_text, iter_id, *args, **kwargs):
+        self.date_text = date_text
+        self.iter_id = iter_id
+        super().__init__(*args, **kwargs)
+        self.ids.thingsbox_id.add_widget(ThingBoxTemplate(iter_id = self.iter_id))
+
 class MemoryScreen(Screen):
+    day_count = NumericProperty(3)
     def __init__(self, *args, **kwargs):
         super(MemoryScreen, self).__init__(*args, **kwargs)
-        day3 = datetime.now()
-        day2 = day3 - timedelta(days = 1)
-        day1 = day2 - timedelta(days = 1)
-        self.ids.mdswiper_id.add_widget(MemoryTemplate(
-            date_text = MainApp.date_format(day1, format = 3)
-        ))
-        self.ids.mdswiper_id.add_widget(MemoryTemplate(
-            date_text = MainApp.date_format(day2, format = 3)
-        ))
-        self.ids.mdswiper_id.add_widget(MemoryTemplate(
-            date_text = MainApp.date_format(day3, format = 3)
-        ))
-        self.ids.mdswiper_id.set_current(2)
-
+        for d in reversed(range(0, self.day_count)):
+            day = datetime.now() - timedelta(days = d)
+            self.ids.mdswiper_id.add_widget(
+                MemoryTemplate(
+                    date_text = MainApp.date_format(day, format = 3),
+                    iter_id = d
+                )
+            )
 class LoginScreen(Screen):
     register_btn_disabled = BooleanProperty(True)
     register_btn_opacity = NumericProperty(0)
@@ -95,6 +99,7 @@ class LoginScreen(Screen):
             user = User(passcode = hashcode)
             session.add(user)
             session.commit()
+            sm.current = 'memory'
         else:
             print('user exists')
 
