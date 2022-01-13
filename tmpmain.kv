@@ -1,0 +1,131 @@
+#:kivy 2.0.0
+<MemoryTemplate>:
+    id: f'memory_id{self.iter_id}'
+    visible: self.visible
+
+    MDBoxLayout:
+        orientation: 'vertical'
+
+        MDLabel:
+            text: f'[size=22][b]{root.date_text}[/b][/size]'
+            markup: True
+            font_name: 'Courgette'
+            halign: 'center'
+            size_hint_y: None
+        MDBoxLayout:
+            id: add_thingsbox_id
+            orientation: 'horizontal'
+            padding: 25
+            size_hint_y: None
+            height: 100 if root.visible else 0
+            opacity: 1 if root.visible else 0
+            MDTextField:
+                id: add_thing_id
+                hint_text: 'I am grateful ...'
+                size_hint_y: None
+                font_name: 'Courgette'
+                font_name_hint_text: 'Courgette'
+                focus: True
+                on_text: root.thing_validation(self)
+                regex: '^[A-Za-z0-9 ,._()]+$'
+                disabled: False if root.visible else True
+                multiline: True
+            MDIconButton:
+                icon: "plus-circle"
+                theme_text_color: "Custom"
+                text_color: app.theme_cls.primary_color
+                icon_size: "75sp"
+                on_release: root.add_thing()
+                disabled: False if root.visible else True
+        
+        ScrollView:
+            do_scroll_x: False
+            do_scroll_y: True
+            scrollsize_hint_x: None
+            MDBoxLayout:
+                id: thingsbox_id
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                pos_hint: {'center_x': .5}
+                padding: 20
+
+
+<MemoryScreen>:
+    name: 'memory'
+    on_enter: self.ids.mdswiper_id.set_current(self.day_count - 1)
+    MDBoxLayout:
+        orientation: 'vertical'
+
+        MDLabel:
+            text: '[u][size=30][b]Memories[/b][/size][/u]'
+            markup: True
+            font_name: 'Courgette'
+            halign: 'center'
+            size_hint_y: None
+
+        MDSwiper:
+            id: mdswiper_id
+            items_spacing: '10dp'
+    
+        MDBoxLayout:
+            size_hint: None, None
+            pos_hint: {'center_x': .30}
+            spacing: '10dp'
+            MDFlatButton:
+                text: 'About'
+                markup: True
+            MDFlatButton:
+                text: '[b]Memories[/b]'
+                markup: True
+                theme_text_color: 'Custom'
+                text_color: self.theme_cls.primary_color
+            MDFlatButton:
+                text: 'Edit'
+                markup: True
+                on_release: root.toggle_edit()
+
+
+<LoginScreen>:
+    name: 'login'
+
+    MDBoxLayout:
+        orientation: 'vertical'
+    
+        MDLabel:
+            text: 'I am Grateful'
+            font_name: 'Courgette'
+            halign: 'center'
+            font_size: '30sp'
+        
+        MDLabel:
+            text: 'Please enter your pass code'
+            font_name: 'Courgette'
+            halign: 'center'
+        
+        MDTextField:
+            id: passcode
+            max_text_length: 4
+            width: 100
+            font_size: 50
+            size_hint_x: None
+            pos_hint: {'center_x': .5}
+            input_filter: 'int'
+            password: True
+            focus: True
+            on_text: root.passcode_validation(self)
+        
+        MDBoxLayout:
+            orientation: 'vertical'
+            MDRectangleFlatButton:
+                text: 'Submit'
+                disabled: root.register_btn_disabled
+                opacity: root.register_btn_opacity
+                on_release: root.register_user()
+                pos_hint: {'center_x': .5, 'center_y': .5}
+        
+        Widget:
+            size_hint_y: None
+            height: 30
+
+

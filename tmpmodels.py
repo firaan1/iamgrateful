@@ -27,14 +27,24 @@ class User(Base):
 
 class Memory(Base):
     __tablename__ = 'memory'
-    # id = Column(Integer, primary_key=True, autoincrement=True)
-    date = Column(DateTime, primary_key = True)
-    happiness = Column(Integer, default = 3)
-    thing1 = Column(String, default = '')
-    thing2 = Column(String, default = '')
-    thing3 = Column(String, default = '')
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    happiness = Column(Integer)
+    date = Column(DateTime, default = datetime.now())
+    things = relationship('Thing', secondary = 'memory_thing_link')
     def __repr__(self):
         return '<Memory %s>' % {self.date}
+
+class Thing(Base):
+    __tablename__ = 'thing'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    text = Column(Text)
+    def __repr__(self):
+        return '<Item %s>' % {self.text}
+
+class MemoryThingLink(Base):
+    __tablename__ = 'memory_thing_link'
+    memory_id = Column(Integer, ForeignKey('memory.id'), primary_key=True)
+    thing_id = Column(Integer, ForeignKey('thing.id'), primary_key=True)
 
 # if __name__ == '__main__':
 # connection
