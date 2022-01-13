@@ -1,3 +1,4 @@
+from xml.dom.pulldom import parseString
 from models import *
 
 import hashlib, re, requests, json
@@ -12,6 +13,9 @@ from kivymd.uix.textfield import MDTextField
 from kivymd.uix.label import MDLabel
 from kivymd.uix.behaviors import TouchBehavior
 from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.button import MDIconButton
+from kivymd.uix.list import IconLeftWidget, IconRightWidget
 
 
 from kivy.core.text import LabelBase
@@ -77,6 +81,8 @@ class ThingTemplate(MDBoxLayout):
     memory = ObjectProperty(None)
     text = StringProperty('')
     iter_id = NumericProperty(-1)
+    dialog = ObjectProperty(None)
+    content = ObjectProperty(None)
     def __init__(self, memory, iter_id = -1, editable = False, *args, **kwargs):
         self.editable = editable
         self.iter_id = iter_id
@@ -90,28 +96,35 @@ class ThingTemplate(MDBoxLayout):
         else:
             self.text = ''
         super().__init__(*args, **kwargs)
-    def toggle_edit(self, obj):
-        # clear
-        if obj.parent.parent.editable:
-            if self.iter_id == 1:
-                self.ids.thing_id.text = self.memory.thing1
-            if self.iter_id == 2:
-                self.ids.thing_id.text = self.memory.thing2
-            if self.iter_id == 3:
-                self.ids.thing_id.text = self.memory.thing3
-            else:
-                self.ids.thing_id.text = ''
-        obj.parent.parent.editable = not obj.parent.parent.editable
-    def save(self, obj):
+    def edit(self):
+        current_text = self.ids.thing_id.text
+        if not self.dialog:
+            self.content = MDTextField(text = current_text, multiline = True)
+            self.dialog = MDDialog(
+                type = 'custom',
+                content_cls = self.content,
+                buttons = [
+                    MDIconButton(icon = 'close', on_release = self.dialog_dismiss),
+                    MDIconButton(icon = 'content-save-edit', on_release = self.save)
+                ],
+            )
+        self.content.focus = True
+        self.dialog.open()
+    def dialog_dismiss(self, *args, **kwargs):
+        self.dialog.dismiss()
+        self.content.text = self.ids.thing_id.text
+    def save(self, *args, **kwargs):
+        current_text = self.content.text
         # save
         if self.iter_id == 1:
-            self.memory.thing1 = self.ids.thing_id.text
+            self.memory.thing1 = current_text
         elif self.iter_id == 2:
-            self.memory.thing2 = self.ids.thing_id.text
+            self.memory.thing2 = current_text
         elif self.iter_id == 3:
-            self.memory.thing3 = self.ids.thing_id.text
+            self.memory.thing3 = current_text
         session.commit()
-        obj.parent.parent.editable = not obj.parent.parent.editable
+        self.dialog_dismiss()
+        self.ids.thing_id.text = current_text
 
 class MemoryTemplate(MDSwiperItem):
     memory = ObjectProperty(None)
@@ -121,28 +134,37 @@ class MemoryTemplate(MDSwiperItem):
     def __init__(self, day, *args, **kwargs):
         self.day = day
         self.date_text = MainApp.format_date(self.day, format = 1)
-        self.get_or_create_memory(day)
+        self.get_or_create_memory()
         super().__init__(*args, **kwargs)
+        # quotejson = json.loads(requests.get('https://zenquotes.io/api/random').content)[0]
+        # self.quote = f'{quotejson["q"]}\n{quotejson["a"]}'
+        # # self.quote = f'{quotejson["q"]}'
+        # self.ids.thingsbox_id.add_widget(ThingTemplate(iter_id = 1, memory = self.memory))
+        # self.ids.thingsbox_id.add_widget(ThingTemplate(iter_id = 2, memory = self.memory))
+        # self.ids.thingsbox_id.add_widget(ThingTemplate(iter_id = 3, memory = self.memory))
+        self.build_memory()
+    def build_memory(self):
+        self.get_or_create_memory()
         quotejson = json.loads(requests.get('https://zenquotes.io/api/random').content)[0]
-        self.quote = f'{quotejson["q"]}\n-{quotejson["a"]}'
+        self.quote = f'{quotejson["q"]}\n{quotejson["a"]}'
+        self.ids.thingsbox_id.clear_widgets()
         self.ids.thingsbox_id.add_widget(ThingTemplate(iter_id = 1, memory = self.memory))
         self.ids.thingsbox_id.add_widget(ThingTemplate(iter_id = 2, memory = self.memory))
         self.ids.thingsbox_id.add_widget(ThingTemplate(iter_id = 3, memory = self.memory))
-    def get_or_create_memory(self, day):
+    def get_or_create_memory(self):
         memory = session.query(Memory).filter(func.date(Memory.date) == func.date(self.day)).first()
         if not memory:
-            memory = Memory(date = day)
+            memory = Memory(date = self.day)
             session.add(memory)
             session.commit()
         self.memory = memory
     def set_happiness(self, obj):
-        # set_hapiness_color = {1:'#bd3b1b',2:'#d8a800',3:'#b9d870',4:'#b6c61a',5:'#006344'}
-        # obj.color = set_hapiness_color[obj.value]
         self.memory.happiness = int(obj.value)
         session.commit()
 
 class MemoryScreen(Screen):
     days_count = NumericProperty(3)
+    # days_count = NumericProperty(1)
     def __init__(self, *args, **kwargs):
         super(MemoryScreen, self).__init__(*args, **kwargs)
         for d in reversed(range(0, self.days_count)):
@@ -150,6 +172,66 @@ class MemoryScreen(Screen):
             self.ids.mdswiper_id.add_widget(
                 MemoryTemplate(day = day)
             )
+
+class MemoryList(OneLineAvatarIconListItem):
+    memory = ObjectProperty(None)
+    # emo_widget = ObjectProperty(None)
+    def __init__(self, memory, *args, **kwargs):
+        self.memory = memory
+        super().__init__(*args, **kwargs)
+        # self.emo_widget = self.get_emoticon()
+        self.text = memory.date.strftime('%d.%m.%Y')
+        self.add_widget(
+            IconLeftWidget(icon = 'trash-can', on_release = self.delete, theme_text_color = 'Custom', text_color = '#d90429')
+        )
+        iconlist = {
+            1: {
+                'emoticon': 'emoticon-poop',
+                'color': '#f94144'
+            },
+            2: {
+                'emoticon': 'emoticon-sad',
+                'color': '#f8961e'
+            },
+            3: {
+                'emoticon': 'emoticon-neutral',
+                'color': '#f9c74f'
+            },
+            4: {
+                'emoticon': 'emoticon-happy',
+                'color': '#90be6d'
+            },
+            5: {
+                'emoticon': 'emoticon-excited',
+                'color': '#43aa8b'
+            }     
+        }
+        emo = iconlist[self.memory.happiness]
+        self.add_widget(IconRightWidget(icon = emo['emoticon'], text_color = emo['color'], theme_text_color = 'Custom', on_release = self.open))
+    def delete(self, *args, **kwargs):
+        memory = session.query(Memory).get(self.memory.date)
+        session.delete(memory)
+        session.commit()
+        self.parent.parent.parent.build_memories()
+        # print(self.parent.parent.parent)
+        # self.parent.parent.parent.remove_widget(self)
+    def open(self, *args, **kwargs):
+        pass
+
+
+class MemoriesScreen(Screen):
+    def __init__(self, *args, **kwargs):
+        super(MemoriesScreen, self).__init__(*args, **kwargs)
+        # self.build_memories()
+    def build_memories(self):
+        self.ids.memories_id.clear_widgets()
+        memories = session.query(Memory).all()
+        print(memories)
+        for memory in memories:
+            self.ids.memories_id.add_widget(
+                MemoryList(memory = memory)
+            )
+
 ############################################
 class MainApp(MDApp):
     def build(self):
@@ -168,8 +250,9 @@ class MainApp(MDApp):
         # sm
         sm.add_widget(LoginScreen(name = 'login'))
         sm.add_widget(MemoryScreen(name = 'memory'))
+        sm.add_widget(MemoriesScreen(name = 'memories'))
         # sm.current = 'login'
-        sm.current = 'memory'
+        sm.current = 'memories'
         return sm
     def format_date(day, format = 0):
         current_date = int(day.strftime('%d'))
@@ -179,5 +262,11 @@ class MainApp(MDApp):
             suffix = ["st", "nd", "rd"][current_date % 10 - 1]
         if format == 1:
             return day.strftime(f'%d{suffix} %B, %Y\n%A')
+    def page(self, string):
+        # if string == 'memories':
+        #     sm.get_screen(string).build_memories()
+        sm.current = string
+        # if string == 'memories':
+        #     sm.current_screen.build_memories()
 ############################################
 MainApp().run()
